@@ -297,6 +297,11 @@
         background: white;
         border-color: #9dccaa;
       }
+      .export-button {
+        color: var(--blue);
+        background: white;
+        border-color: #b9d5ee;
+      }
       .add-form {
         display: grid;
         grid-template-columns: 1.25fr 0.65fr auto;
@@ -660,6 +665,26 @@
         transform: translateX(-50%);
         text-align: center;
       }
+      .participant-position {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 76px;
+        min-height: 48px;
+        margin: 0;
+        padding: 6px 12px;
+        color: var(--blue);
+        background: rgba(234, 244, 255, 0.9);
+        border: 1px solid #cfe3f7;
+        border-radius: 999px;
+        font: 900 clamp(16px, 1.6vw, 24px) Arial, sans-serif;
+        font-variant-numeric: tabular-nums;
+      }
+      .presentation.timed-out .participant-position {
+        color: #8d1717;
+        background: white;
+        border-color: white;
+      }
       .neighbor {
         position: absolute;
         bottom: 30px;
@@ -695,9 +720,11 @@
       }
       .neighbor.next .neighbor-name {
         font-size: clamp(34px, 4.2vw, 68px);
+        margin-top: 4px;
       }
       .neighbor.next .neighbor-id {
         font-size: clamp(23px, 2.5vw, 38px);
+        margin-top: 7px;
       }
       .neighbor-name {
         display: block;
@@ -974,6 +1001,7 @@
                 <h2>Участници <span class="count" id="participantCount">0</span></h2>
               </div>
               <div class="participant-tools">
+                <button class="button export-button" id="exportButton" type="button">⇩ Експорт CSV</button>
                 <label class="import-label"
                   >⇧ Импорт от CSV<input id="csvInput" type="file" accept=".csv,text/csv" hidden
                 /></label>
@@ -1008,6 +1036,7 @@
       <section class="presentation hidden" id="presentationView" aria-live="polite">
         <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
         <div class="presentation-toolbar">
+          <div class="participant-position" id="participantPosition">0 / 0</div>
           <button
             class="button"
             id="presentationSetupButton"
@@ -1029,12 +1058,12 @@
         <div class="timer" id="timerText">03:00</div>
         <div class="current-participant">
           <h1 class="current-name" id="currentName">Няма избран участник</h1>
-          <div class="current-id" id="currentId">Натиснете интервал за първия участник</div>
+          <div class="current-id" id="currentId"></div>
         </div>
         <div class="neighbor next">
           <span class="neighbor-label">Следващ →</span>
-          <span class="neighbor-name" id="nextName">—</span>
           <span class="neighbor-id" id="nextId"></span>
+          <span class="neighbor-name" id="nextName">—</span>
         </div>
       </section>
     </main>
@@ -1057,6 +1086,7 @@
         let dragGhost = null;
         let pendingFinishedSpaceTimer = null;
         const DOUBLE_SPACE_MS = 500;
+        let audioContext = null;
 
         const $ = id => document.getElementById(id);
         const els = {
@@ -1067,6 +1097,7 @@
           minutes: $('minutesInput'),
           seconds: $('secondsInput'),
           csv: $('csvInput'),
+          exportCsv: $('exportButton'),
           addForm: $('addForm'),
           newName: $('newName'),
           newId: $('newId'),
@@ -1079,6 +1110,7 @@
           status: $('statusText'),
           currentName: $('currentName'),
           currentId: $('currentId'),
+          participantPosition: $('participantPosition'),
           nextName: $('nextName'),
           nextId: $('nextId'),
           presentationSetup: $('presentationSetupButton'),
@@ -1232,6 +1264,59 @@
             .map(r => ({ name: r[0] || 'Без име', id: r[1] || '—' }));
         }
 
+        function escapeCsvField(value) {
+          return `"${String(value ?? '').replaceAll('"', '""')}"`;
+        }
+
+        function exportParticipantsCsv() {
+          if (!data.participants.length) {
+            showToast('Няма участници за експорт.');
+            return;
+          }
+          const rows = [
+            ['име', 'ID'],
+            ...data.participants.map(participant => [participant.name, participant.id])
+          ];
+          const csv = '\uFEFF' + rows.map(row => row.map(escapeCsvField).join(',')).join('\r\n');
+          const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'uchastnitsi.csv';
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          showToast('CSV файлът е експортиран.');
+        }
+
+        function prepareTimeoutSound() {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return;
+          if (!audioContext) audioContext = new AudioContextClass();
+          if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+        }
+
+        function playTimeoutSound() {
+          if (!audioContext) return;
+          const play = () => {
+            const start = audioContext.currentTime;
+            [0, 0.26, 0.52].forEach((delay, index) => {
+              const oscillator = audioContext.createOscillator();
+              const gain = audioContext.createGain();
+              oscillator.type = 'triangle';
+              oscillator.frequency.value = [660, 880, 1046][index];
+              gain.gain.setValueAtTime(0.0001, start + delay);
+              gain.gain.exponentialRampToValueAtTime(0.1, start + delay + 0.035);
+              gain.gain.exponentialRampToValueAtTime(0.0001, start + delay + 0.32);
+              oscillator.connect(gain).connect(audioContext.destination);
+              oscillator.start(start + delay);
+              oscillator.stop(start + delay + 0.34);
+            });
+          };
+          if (audioContext.state === 'suspended') audioContext.resume().then(play).catch(() => {});
+          else play();
+        }
+
         function formatTime(total) {
           total = Math.max(0, Math.ceil(total));
           const minutes = Math.floor(total / 60);
@@ -1263,8 +1348,9 @@
             : 'Няма добавени участници';
           els.currentId.textContent =
             current ? `ID: ${current.id || '—'}`
-            : data.participants.length ? 'Натиснете интервал за първия участник'
+            : data.participants.length ? ''
             : 'Върнете се в „Настройка“';
+          els.participantPosition.textContent = `${current ? currentIndex + 1 : 0} / ${data.participants.length}`;
           setNeighbor(els.nextName, els.nextId, getParticipant(currentIndex + 1));
           const labels = {
             waiting: 'Готовност',
@@ -1353,6 +1439,7 @@
             if (remaining <= 0) {
               stopTicker();
               timerState = 'timeout';
+              playTimeoutSound();
             }
             updatePresentation();
           }, 200);
@@ -1386,6 +1473,7 @@
         }
 
         function handleSpace() {
+          prepareTimeoutSound();
           if (!data.participants.length) {
             showToast('Първо добавете участници.');
             return;
@@ -1569,6 +1657,8 @@
             els.csv.value = '';
           }
         });
+
+        els.exportCsv.addEventListener('click', exportParticipantsCsv);
 
         els.shuffle.addEventListener('click', () => {
           if (data.participants.length < 2) {
