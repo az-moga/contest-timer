@@ -1,0 +1,1644 @@
+<!doctype html>
+<html lang="bg">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f7f9fc" />
+    <title>Състезателен таймер</title>
+    <style>
+      :root {
+        --ink: #223550;
+        --muted: #708097;
+        --blue: #1769b7;
+        --red: #ef3434;
+        --green: #2b9146;
+        --purple: #8359ae;
+        --yellow: #f4a51c;
+        --line: #d9e3ef;
+        --surface: rgba(255, 255, 255, 0.94);
+        --shadow: 0 18px 48px rgba(34, 53, 80, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        min-height: 100%;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', Arial, sans-serif;
+        background:
+          radial-gradient(circle at -2% 20%, rgba(23, 105, 183, 0.13) 0 10rem, transparent 10.1rem),
+          radial-gradient(circle at 101% 15%, rgba(239, 52, 52, 0.1) 0 7rem, transparent 7.1rem),
+          radial-gradient(circle at 95% 79%, rgba(131, 89, 174, 0.1) 0 9rem, transparent 9.1rem),
+          radial-gradient(circle at 3% 88%, rgba(43, 145, 70, 0.12) 0 8rem, transparent 8.1rem),
+          #f7f9fc;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0 0 auto;
+        height: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--blue) 0 20%,
+          var(--red) 20% 40%,
+          var(--yellow) 40% 60%,
+          var(--green) 60% 80%,
+          var(--purple) 80%
+        );
+        z-index: 30;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+      button {
+        color: inherit;
+      }
+      .hidden {
+        display: none !important;
+      }
+
+      .topbar {
+        height: 88px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 0 max(24px, calc((100vw - 1360px) / 2));
+        background: rgba(255, 255, 255, 0.88);
+        border-bottom: 1px solid var(--line);
+        backdrop-filter: blur(12px);
+        position: relative;
+        z-index: 10;
+      }
+
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+      }
+      .brand-mark {
+        color: var(--red);
+      }
+      .brand-word {
+        color: var(--purple);
+      }
+      .brand-word:nth-child(3) {
+        color: #3aa6a3;
+      }
+      .mode-switch {
+        display: flex;
+        gap: 10px;
+      }
+
+      .tab,
+      .button,
+      .icon-button {
+        border: 1px solid var(--line);
+        background: white;
+        border-radius: 14px;
+        cursor: pointer;
+        font-weight: 800;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease,
+          background 0.15s ease;
+      }
+      .tab {
+        padding: 13px 18px;
+      }
+      .tab:hover,
+      .button:hover,
+      .icon-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(34, 53, 80, 0.1);
+      }
+      .tab.active {
+        color: var(--blue);
+        background: #eef6ff;
+        border-color: #cfe2f6;
+      }
+      .tab.danger.active {
+        color: #fff;
+        background: var(--red);
+        border-color: var(--red);
+      }
+
+      main {
+        width: min(1360px, calc(100% - 48px));
+        margin: 0 auto;
+      }
+      .setup {
+        padding: 56px 0 72px;
+      }
+      .page-heading {
+        margin: 0 0 34px;
+        font-size: clamp(36px, 5vw, 56px);
+        letter-spacing: -0.04em;
+      }
+      .page-heading::after {
+        content: '';
+        display: block;
+        width: 230px;
+        height: 8px;
+        margin-top: 12px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='230' height='8' viewBox='0 0 230 8'%3E%3Cpath d='M1 4C18 0 26 7 43 4S67 1 84 4s27 3 44 0 27-3 44 0 28 3 57 0' fill='none' stroke='%23223550' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E")
+          center/contain no-repeat;
+      }
+      .setup-grid {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.72fr) minmax(520px, 1.45fr);
+        gap: 28px;
+        align-items: start;
+      }
+      .card {
+        border-radius: 28px;
+        padding: 28px;
+        box-shadow: var(--shadow);
+      }
+      .card-purple {
+        background: #f4edfb;
+        border: 1px solid #d8c4ed;
+        border-top: 4px solid var(--purple);
+      }
+      .card-green {
+        background: #eaf7ee;
+        border: 1px solid #bfe1c8;
+        border-top: 4px solid var(--green);
+      }
+      .eyebrow {
+        margin: 0 0 10px;
+        color: var(--purple);
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .card-green .eyebrow {
+        color: #267a3b;
+      }
+      .card h2 {
+        margin: 0 0 24px;
+        font-size: 29px;
+        letter-spacing: -0.03em;
+      }
+      .time-fields {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 10px;
+        align-items: center;
+      }
+      .time-separator {
+        font-size: 36px;
+        font-weight: 900;
+      }
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 900;
+      }
+      input[type='number'],
+      input[type='text'] {
+        width: 100%;
+        margin-top: 8px;
+        padding: 14px 15px;
+        color: var(--ink);
+        background: white;
+        border: 1px solid #cfdbe8;
+        border-radius: 12px;
+        outline: none;
+      }
+      input:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 4px rgba(23, 105, 183, 0.12);
+      }
+      .hint {
+        color: var(--muted);
+        line-height: 1.5;
+        font-family: Arial, sans-serif;
+      }
+      .shortcuts {
+        margin: 24px 0 0;
+        padding-top: 20px;
+        border-top: 1px solid rgba(131, 89, 174, 0.2);
+      }
+      .shortcut-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 9px 0;
+        color: var(--muted);
+        font-family: Arial, sans-serif;
+      }
+      kbd {
+        min-width: 35px;
+        padding: 5px 9px;
+        text-align: center;
+        color: var(--ink);
+        background: white;
+        border: 1px solid #ccd7e4;
+        border-bottom-width: 3px;
+        border-radius: 7px;
+        font:
+          700 13px Arial,
+          sans-serif;
+      }
+
+      .card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+      }
+      .count {
+        display: inline-flex;
+        min-width: 35px;
+        height: 35px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 99px;
+        color: white;
+        background: var(--green);
+      }
+      .import-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 14px;
+        border: 1px solid #9dccaa;
+        border-radius: 12px;
+        background: white;
+        cursor: pointer;
+        font-weight: 900;
+      }
+      .import-label:hover {
+        box-shadow: 0 8px 20px rgba(34, 53, 80, 0.08);
+      }
+      .participant-tools {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 9px;
+        flex-wrap: wrap;
+      }
+      .shuffle-button {
+        color: #267a3b;
+        background: white;
+        border-color: #9dccaa;
+      }
+      .add-form {
+        display: grid;
+        grid-template-columns: 1.25fr 0.65fr auto;
+        gap: 10px;
+        margin: 4px 0 18px;
+      }
+      .add-form input {
+        margin: 0;
+      }
+      .button {
+        padding: 12px 16px;
+      }
+      .button.primary {
+        color: white;
+        border-color: var(--green);
+        background: var(--green);
+      }
+      .button.secondary {
+        background: white;
+      }
+      .button.delete-all {
+        margin-top: 16px;
+        color: #a42c2c;
+        border-color: #efc2c2;
+        background: #fff7f7;
+      }
+      .participant-bottom-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+      }
+      .participant-bottom-actions .delete-all {
+        margin-top: 0;
+      }
+
+      .participant-list {
+        display: block;
+      }
+      .participant-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) minmax(100px, 0.38fr) auto;
+        gap: 9px;
+        align-items: center;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #cde3d3;
+        border-radius: 14px;
+        transition:
+          opacity 0.15s ease,
+          transform 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .participant-row input {
+        margin: 0;
+        padding: 10px 11px;
+      }
+      .participant-row.is-dragging {
+        opacity: 0.36;
+        transform: scale(0.985);
+      }
+      .drag-handle {
+        color: #88a292;
+        font-size: 21px;
+        cursor: grab;
+        user-select: none;
+        touch-action: none;
+      }
+      .drag-handle:active {
+        cursor: grabbing;
+      }
+      .drop-zone {
+        height: 10px;
+        display: grid;
+        place-items: center;
+        position: relative;
+        transition: height 0.16s ease;
+      }
+      .participant-list.dragging-active .drop-zone {
+        height: 26px;
+      }
+      .participant-list.dragging-active .drop-zone::before {
+        content: '';
+        width: calc(100% - 28px);
+        height: 2px;
+        border-radius: 99px;
+        background: #a9d4b4;
+        opacity: 0.5;
+        transition:
+          height 0.16s ease,
+          opacity 0.16s ease,
+          background 0.16s ease;
+      }
+      .participant-list.dragging-active .drop-zone.active {
+        height: 68px;
+      }
+      .participant-list.dragging-active .drop-zone.active::before {
+        position: absolute;
+        inset: 6px 0;
+        width: 100%;
+        height: auto;
+        border: 2px dashed var(--green);
+        background: rgba(43, 145, 70, 0.08);
+        opacity: 1;
+      }
+      .drop-zone-preview {
+        position: absolute;
+        inset: 11px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 8px 14px;
+        color: #267a3b;
+        background: rgba(255, 255, 255, 0.82);
+        border-radius: 10px;
+        opacity: 0;
+        transform: scale(0.98);
+        pointer-events: none;
+        transition:
+          opacity 0.15s ease,
+          transform 0.15s ease;
+      }
+      .drop-zone.active .drop-zone-preview {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .drop-preview-name {
+        font-weight: 900;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .drop-preview-id {
+        flex: none;
+        color: var(--muted);
+        font:
+          700 14px Arial,
+          sans-serif;
+      }
+      .drag-ghost {
+        position: fixed;
+        left: -2000px;
+        top: -2000px;
+        z-index: 100;
+        width: min(520px, 70vw);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 15px 18px;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.94);
+        border: 2px solid var(--green);
+        border-radius: 14px;
+        box-shadow: 0 18px 40px rgba(34, 53, 80, 0.22);
+        transform: rotate(1.5deg);
+      }
+      .drag-ghost strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .drag-ghost span {
+        flex: none;
+        color: var(--muted);
+        font:
+          700 14px Arial,
+          sans-serif;
+      }
+      .row-actions {
+        display: flex;
+        gap: 6px;
+      }
+      .icon-button {
+        width: 38px;
+        height: 38px;
+        padding: 0;
+      }
+      .icon-button.delete {
+        color: #bc3030;
+        background: #fff7f7;
+        border-color: #efcaca;
+      }
+      .empty {
+        padding: 35px 20px;
+        text-align: center;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.75);
+        border: 2px dashed #cde3d3;
+        border-radius: 16px;
+        font-family: Arial, sans-serif;
+      }
+
+      .presentation {
+        min-height: 100vh;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 50px 40px 120px;
+        text-align: center;
+        transition:
+          background 0.35s ease,
+          color 0.35s ease;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .presentation::before,
+      .presentation::after {
+        content: '';
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+      }
+      .presentation::before {
+        width: 17vw;
+        height: 17vw;
+        left: -6vw;
+        top: 11%;
+        background: rgba(23, 105, 183, 0.08);
+      }
+      .presentation::after {
+        width: 14vw;
+        height: 14vw;
+        right: -4vw;
+        bottom: 12%;
+        background: rgba(131, 89, 174, 0.08);
+      }
+      .presentation.warning {
+        background: #fff3f2;
+      }
+      .presentation.urgent {
+        background: #fbd9d8;
+      }
+      .presentation.flash {
+        animation: flash-page 1s ease;
+      }
+      .presentation.flash.flash-long {
+        animation-duration: 2s;
+      }
+      .presentation.flash-green {
+        animation: flash-green 1s ease;
+      }
+      .presentation.flash-start {
+        animation: flash-start 0.9s ease;
+      }
+      @keyframes flash-page {
+        0%,
+        100% {
+          background-color: #fff1f0;
+        }
+        22%,
+        66% {
+          background-color: #efb5b2;
+        }
+        44%,
+        88% {
+          background-color: #f9dcda;
+        }
+      }
+      @keyframes flash-green {
+        0%, 100% { background-color: #e7f7eb; }
+        25%, 70% { background-color: #bfe9c9; }
+        48% { background-color: #e7f7eb; }
+      }
+      @keyframes flash-start {
+        0%, 100% { background-color: #eef7ff; }
+        35%, 68% { background-color: #b9ddfa; }
+      }
+      .presentation.timed-out {
+        background: #a71924;
+        color: white;
+      }
+      .presentation.timed-out.flash {
+        animation-name: timeout-flash;
+      }
+      @keyframes timeout-flash {
+        0%, 100% { background-color: #a71924; }
+        25%, 70% { background-color: #d9474f; }
+        48% { background-color: #86111a; }
+      }
+      .presentation.timed-out .timer,
+      .presentation.timed-out .current-id,
+      .presentation.timed-out .neighbor-label,
+      .presentation.timed-out .neighbor-name,
+      .presentation.timed-out .neighbor-id {
+        color: white;
+      }
+      .presentation.timed-out .status-pill {
+        color: #8d1717;
+        background: white;
+        border-color: white;
+      }
+      .presentation.timed-out .neighbor.next .neighbor-label {
+        color: white;
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      .presentation.timed-out::before,
+      .presentation.timed-out::after {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .status-pill {
+        position: absolute;
+        top: clamp(72px, 10vh, 120px);
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 8px 16px;
+        color: var(--blue);
+        background: #eaf4ff;
+        border: 1px solid #cfe3f7;
+        border-radius: 99px;
+        font-size: clamp(14px, 1.4vw, 20px);
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .timer {
+        position: absolute;
+        top: 46%;
+        left: 50%;
+        width: 100%;
+        margin: 0;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        font-size: clamp(130px, 24vw, 360px);
+        line-height: 0.88;
+        font-weight: 900;
+        letter-spacing: -0.075em;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 10px 0 rgba(34, 53, 80, 0.04);
+      }
+      .warning .timer {
+        color: #b93333;
+      }
+      .urgent .timer {
+        color: #8d1717;
+      }
+      .current-name {
+        margin: 0;
+        font-size: clamp(40px, 7vw, 100px);
+        line-height: 1;
+        letter-spacing: -0.045em;
+        overflow-wrap: anywhere;
+      }
+      .current-id {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: clamp(24px, 3vw, 42px);
+        font-family: Arial, sans-serif;
+        font-weight: 800;
+      }
+      .current-participant {
+        position: absolute;
+        top: calc(50% + clamp(90px, 13vw, 170px));
+        left: 50%;
+        width: 90vw;
+        transform: translateX(-50%);
+        text-align: center;
+      }
+      .neighbor {
+        position: absolute;
+        bottom: 30px;
+        max-width: 42%;
+        text-align: left;
+        z-index: 2;
+      }
+      .neighbor.prev {
+        display: none;
+      }
+      .neighbor.next {
+        right: 38px;
+        text-align: right;
+      }
+      .neighbor-label {
+        display: block;
+        margin-bottom: 7px;
+        color: var(--muted);
+        font:
+          800 clamp(13px, 1.25vw, 19px) Arial,
+          sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .neighbor.next .neighbor-label {
+        display: inline-block;
+        padding: 6px 10px;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(34, 53, 80, 0.12);
+        border-radius: 12px;
+        font-size: clamp(13px, 1.2vw, 18px);
+      }
+      .neighbor.next .neighbor-name {
+        font-size: clamp(34px, 4.2vw, 68px);
+      }
+      .neighbor.next .neighbor-id {
+        font-size: clamp(23px, 2.5vw, 38px);
+      }
+      .neighbor-name {
+        display: block;
+        font-size: clamp(25px, 3vw, 47px);
+        line-height: 1.08;
+        font-weight: 900;
+        overflow-wrap: anywhere;
+      }
+      .neighbor-id {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font:
+          700 clamp(17px, 1.8vw, 28px) Arial,
+          sans-serif;
+      }
+      .presentation-toolbar {
+        position: absolute;
+        top: 20px;
+        right: 28px;
+        display: flex;
+        gap: 8px;
+        z-index: 4;
+      }
+      .presentation-toolbar .button {
+        width: 48px;
+        height: 48px;
+        padding: 0;
+        display: grid;
+        place-items: center;
+        font-size: 22px;
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(8px);
+      }
+      .progress-track {
+        position: absolute;
+        top: 24px;
+        bottom: 24px;
+        left: 20px;
+        width: clamp(14px, 1.4vw, 24px);
+        z-index: 5;
+        overflow: hidden;
+        background: rgba(34, 53, 80, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.62);
+        border-radius: 999px;
+        box-shadow: 0 5px 18px rgba(34, 53, 80, 0.12), inset -1px 0 rgba(255, 255, 255, 0.55);
+      }
+      .progress-fill {
+        position: absolute;
+        inset: auto 0 0;
+        height: 100%;
+        background: var(--green);
+        border-radius: inherit;
+        will-change: height, background-color;
+      }
+      .presentation.timed-out .progress-track {
+        background: rgba(255, 255, 255, 0.28);
+      }
+
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 28px;
+        z-index: 50;
+        transform: translate(-50%, 20px);
+        padding: 12px 18px;
+        color: white;
+        background: var(--ink);
+        border-radius: 12px;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.2s,
+          transform 0.2s;
+        font-family: Arial, sans-serif;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+
+      @media (max-width: 850px) {
+        .topbar {
+          height: auto;
+          min-height: 80px;
+          padding: 16px 20px;
+        }
+        .brand {
+          font-size: 19px;
+        }
+        .tab {
+          padding: 10px 12px;
+        }
+        main {
+          width: min(100% - 28px, 720px);
+        }
+        .setup {
+          padding-top: 32px;
+        }
+        .setup-grid {
+          grid-template-columns: 1fr;
+        }
+        .add-form {
+          grid-template-columns: 1fr 1fr;
+        }
+        .add-form .button {
+          grid-column: 1 / -1;
+        }
+        .participant-row {
+          grid-template-columns: auto minmax(0, 1fr) auto;
+        }
+        .participant-row .id-input {
+          grid-column: 2;
+        }
+        .row-actions {
+          grid-column: 3;
+          grid-row: 1 / 3;
+          flex-direction: column;
+        }
+        .presentation {
+          min-height: 100vh;
+          padding-inline: 15px;
+          padding-bottom: 150px;
+        }
+        .timer {
+          font-size: clamp(100px, 29vw, 190px);
+        }
+        .current-name {
+          font-size: clamp(35px, 10vw, 68px);
+        }
+        .current-participant {
+          top: calc(50% + clamp(92px, 14vw, 130px));
+        }
+        .neighbor {
+          bottom: 24px;
+          max-width: 44%;
+        }
+        .neighbor.prev {
+          left: 16px;
+        }
+        .neighbor.next {
+          right: 16px;
+        }
+        .presentation-toolbar {
+          top: 12px;
+          right: 14px;
+        }
+        .progress-track {
+          top: 16px;
+          bottom: 16px;
+          left: 10px;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .topbar {
+          align-items: flex-start;
+        }
+        .brand {
+          flex-wrap: wrap;
+          gap: 3px 6px;
+          max-width: 130px;
+        }
+        .mode-switch {
+          flex-direction: column;
+        }
+        .tab {
+          font-size: 13px;
+        }
+        .card {
+          padding: 20px;
+          border-radius: 22px;
+        }
+        .card-header {
+          flex-direction: column;
+        }
+        .add-form {
+          grid-template-columns: 1fr;
+        }
+        .add-form .button {
+          grid-column: auto;
+        }
+        .participant-row {
+          grid-template-columns: 1fr auto;
+        }
+        .drag-handle {
+          display: none;
+        }
+        .participant-row .id-input {
+          grid-column: 1;
+        }
+        .row-actions {
+          grid-column: 2;
+        }
+        .presentation {
+          padding-bottom: 170px;
+        }
+        .timer {
+          font-size: 27vw;
+        }
+        .neighbor-name {
+          font-size: 21px;
+        }
+        .neighbor.next .neighbor-name {
+          font-size: clamp(26px, 7vw, 36px);
+        }
+        .neighbor.next .neighbor-id {
+          font-size: clamp(19px, 5vw, 25px);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand" aria-label="Състезателен таймер">
+        <span class="brand-mark">„Време</span><span class="brand-word">за</span
+        ><span class="brand-word">представяне“</span>
+      </div>
+      <nav class="mode-switch" aria-label="Режим">
+        <button class="tab active" id="setupTab" type="button">⚙ Настройка</button>
+        <button class="tab" id="presentTab" type="button">▶ Представяне</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="setup" id="setupView">
+        <h1 class="page-heading">Състезателен таймер</h1>
+        <div class="setup-grid">
+          <article class="card card-purple">
+            <p class="eyebrow">Време за участие</p>
+            <h2>Времеви лимит</h2>
+            <div class="time-fields">
+              <label
+                >Минути<input
+                  id="minutesInput"
+                  type="number"
+                  min="0"
+                  max="999"
+                  value="3"
+                  inputmode="numeric"
+              /></label>
+              <span class="time-separator">:</span>
+              <label
+                >Секунди<input
+                  id="secondsInput"
+                  type="number"
+                  min="0"
+                  max="59"
+                  value="0"
+                  inputmode="numeric"
+              /></label>
+            </div>
+            <p class="hint">Лимитът е еднакъв за всички участници и се запазва автоматично.</p>
+            <div class="shortcuts">
+              <div class="shortcut-row"><kbd>Интервал</kbd><span>следващ / старт / стоп</span></div>
+              <div class="shortcut-row"><kbd>2× Интервал</kbd><span>продължи от спряната точка</span></div>
+              <div class="shortcut-row"><kbd>←</kbd><span>назад / нулиране</span></div>
+            </div>
+          </article>
+
+          <article class="card card-green">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Ред на представяне</p>
+                <h2>Участници <span class="count" id="participantCount">0</span></h2>
+              </div>
+              <div class="participant-tools">
+                <label class="import-label"
+                  >⇧ Импорт от CSV<input id="csvInput" type="file" accept=".csv,text/csv" hidden
+                /></label>
+              </div>
+            </div>
+            <form class="add-form" id="addForm">
+              <input
+                id="newName"
+                type="text"
+                placeholder="Име на участник"
+                aria-label="Име на участник"
+                required />
+              <input
+                id="newId"
+                type="text"
+                placeholder="Номер / ID"
+                aria-label="Номер или ID"
+                required />
+              <button class="button primary" type="submit">＋ Добави</button>
+            </form>
+            <div class="participant-list" id="participantList" aria-live="polite"></div>
+            <div class="participant-bottom-actions">
+              <button class="button shuffle-button" id="shuffleButton" type="button">⤨ Разбъркай участниците</button>
+              <button class="button delete-all hidden" id="deleteAllButton" type="button">
+                Изчисти всички участници
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="presentation hidden" id="presentationView" aria-live="polite">
+        <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="presentation-toolbar">
+          <button
+            class="button"
+            id="presentationSetupButton"
+            type="button"
+            title="Настройки"
+            aria-label="Настройки">
+            ⚙
+          </button>
+          <button
+            class="button"
+            id="fullscreenButton"
+            type="button"
+            title="Цял екран"
+            aria-label="Цял екран">
+            ⛶
+          </button>
+        </div>
+        <div class="status-pill" id="statusText">Готовност</div>
+        <div class="timer" id="timerText">03:00</div>
+        <div class="current-participant">
+          <h1 class="current-name" id="currentName">Няма избран участник</h1>
+          <div class="current-id" id="currentId">Натиснете интервал за първия участник</div>
+        </div>
+        <div class="neighbor next">
+          <span class="neighbor-label">Следващ →</span>
+          <span class="neighbor-name" id="nextName">—</span>
+          <span class="neighbor-id" id="nextId"></span>
+        </div>
+      </section>
+    </main>
+    <div class="toast" id="toast" role="status"></div>
+
+    <script>
+      (() => {
+        'use strict';
+        const STORAGE_KEY = 'contest-timer-bg-v1';
+        const defaults = { limitSeconds: 180, participants: [] };
+        let data = loadData();
+        let currentIndex = -1;
+        let remaining = data.limitSeconds;
+        let timerState = 'waiting'; // waiting, ready, running, finished, timeout
+        let timerHandle = null;
+        let progressAnimationFrame = null;
+        let targetEnd = null;
+        let flashedAt = new Set();
+        let draggedIndex = null;
+        let dragGhost = null;
+        let pendingFinishedSpaceTimer = null;
+        const DOUBLE_SPACE_MS = 500;
+
+        const $ = id => document.getElementById(id);
+        const els = {
+          setupTab: $('setupTab'),
+          presentTab: $('presentTab'),
+          setupView: $('setupView'),
+          presentationView: $('presentationView'),
+          minutes: $('minutesInput'),
+          seconds: $('secondsInput'),
+          csv: $('csvInput'),
+          addForm: $('addForm'),
+          newName: $('newName'),
+          newId: $('newId'),
+          list: $('participantList'),
+          count: $('participantCount'),
+          shuffle: $('shuffleButton'),
+          deleteAll: $('deleteAllButton'),
+          timer: $('timerText'),
+          progressFill: $('progressFill'),
+          status: $('statusText'),
+          currentName: $('currentName'),
+          currentId: $('currentId'),
+          nextName: $('nextName'),
+          nextId: $('nextId'),
+          presentationSetup: $('presentationSetupButton'),
+          fullscreen: $('fullscreenButton'),
+          toast: $('toast')
+        };
+
+        function loadData() {
+          try {
+            const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if (!parsed || !Array.isArray(parsed.participants)) return structuredClone(defaults);
+            return {
+              limitSeconds:
+                Number.isFinite(parsed.limitSeconds) && parsed.limitSeconds > 0 ?
+                  Math.round(parsed.limitSeconds)
+                : defaults.limitSeconds,
+              participants: parsed.participants
+                .map(p => ({ name: String(p.name || '').trim(), id: String(p.id || '').trim() }))
+                .filter(p => p.name || p.id)
+            };
+          } catch {
+            return structuredClone(defaults);
+          }
+        }
+
+        function saveData() {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+        function escapeHtml(text) {
+          return String(text).replace(
+            /[&<>'"]/g,
+            char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]
+          );
+        }
+        function showToast(message) {
+          els.toast.textContent = message;
+          els.toast.classList.add('show');
+          clearTimeout(showToast.timeout);
+          showToast.timeout = setTimeout(() => els.toast.classList.remove('show'), 2200);
+        }
+
+        function syncTimeInputs() {
+          els.minutes.value = Math.floor(data.limitSeconds / 60);
+          els.seconds.value = data.limitSeconds % 60;
+        }
+
+        function updateLimit() {
+          let minutes = Math.max(0, Math.min(999, Number.parseInt(els.minutes.value, 10) || 0));
+          let seconds = Math.max(0, Math.min(59, Number.parseInt(els.seconds.value, 10) || 0));
+          if (minutes === 0 && seconds === 0) {
+            seconds = 1;
+            els.seconds.value = 1;
+          }
+          data.limitSeconds = minutes * 60 + seconds;
+          if (timerState !== 'running') remaining = data.limitSeconds;
+          saveData();
+          updatePresentation();
+        }
+
+        function renderParticipants() {
+          els.count.textContent = data.participants.length;
+          els.deleteAll.classList.toggle('hidden', data.participants.length === 0);
+          if (!data.participants.length) {
+            els.list.innerHTML =
+              '<div class="empty"><strong>Все още няма участници</strong><br>Добавете ги ръчно или импортирайте CSV файл.</div>';
+            updatePresentation();
+            return;
+          }
+          const dropZone = slot =>
+            `<div class="drop-zone" data-drop-index="${slot}"><div class="drop-zone-preview" aria-hidden="true"><span class="drop-preview-name"></span><span class="drop-preview-id"></span></div></div>`;
+          els.list.innerHTML =
+            dropZone(0) +
+            data.participants
+              .map(
+                (p, index) => `
+          <div class="participant-row" data-index="${index}">
+            <span class="drag-handle" draggable="true" title="Плъзнете за пренареждане" aria-label="Плъзнете ${escapeHtml(p.name || 'участника')}">⠿</span>
+            <input class="name-input" type="text" value="${escapeHtml(p.name)}" aria-label="Име на участник ${index + 1}">
+            <input class="id-input" type="text" value="${escapeHtml(p.id)}" aria-label="ID на участник ${index + 1}">
+            <div class="row-actions">
+              <button class="icon-button move-up" type="button" title="Премести нагоре" ${index === 0 ? 'disabled' : ''}>↑</button>
+              <button class="icon-button move-down" type="button" title="Премести надолу" ${index === data.participants.length - 1 ? 'disabled' : ''}>↓</button>
+              <button class="icon-button delete" type="button" title="Изтрий">×</button>
+            </div>
+          </div>${dropZone(index + 1)}`
+              )
+              .join('');
+          updatePresentation();
+        }
+
+        function moveParticipant(from, to) {
+          if (to < 0 || to >= data.participants.length || from === to) return;
+          const [item] = data.participants.splice(from, 1);
+          data.participants.splice(to, 0, item);
+          saveData();
+          renderParticipants();
+        }
+
+        function moveParticipantToSlot(from, slot) {
+          let target = slot;
+          if (from < slot) target--;
+          if (target === from || target < 0 || target >= data.participants.length) return;
+          const [item] = data.participants.splice(from, 1);
+          data.participants.splice(target, 0, item);
+          saveData();
+          renderParticipants();
+        }
+
+        function clearDragState() {
+          els.list.classList.remove('dragging-active');
+          els.list
+            .querySelectorAll('.active, .is-dragging')
+            .forEach(element => element.classList.remove('active', 'is-dragging'));
+          if (dragGhost) dragGhost.remove();
+          dragGhost = null;
+          draggedIndex = null;
+        }
+
+        function parseCsv(text) {
+          const rows = [];
+          let row = [];
+          let field = '';
+          let quoted = false;
+          for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            if (char === '"' && quoted && text[i + 1] === '"') {
+              field += '"';
+              i++;
+            } else if (char === '"') quoted = !quoted;
+            else if (char === ',' && !quoted) {
+              row.push(field.trim());
+              field = '';
+            } else if ((char === '\n' || char === '\r') && !quoted) {
+              if (char === '\r' && text[i + 1] === '\n') i++;
+              row.push(field.trim());
+              if (row.some(Boolean)) rows.push(row);
+              row = [];
+              field = '';
+            } else field += char;
+          }
+          row.push(field.trim());
+          if (row.some(Boolean)) rows.push(row);
+          if (
+            rows.length &&
+            /^(име|name)$/i.test(rows[0][0]) &&
+            /^(id|номер|participant id)$/i.test(rows[0][1] || '')
+          )
+            rows.shift();
+          return rows
+            .filter(r => r[0] || r[1])
+            .map(r => ({ name: r[0] || 'Без име', id: r[1] || '—' }));
+        }
+
+        function formatTime(total) {
+          total = Math.max(0, Math.ceil(total));
+          const minutes = Math.floor(total / 60);
+          const seconds = total % 60;
+          return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function getParticipant(index) {
+          return index >= 0 && index < data.participants.length ? data.participants[index] : null;
+        }
+        function setNeighbor(nameEl, idEl, participant) {
+          nameEl.textContent = participant ? participant.name || 'Без име' : '—';
+          idEl.textContent = participant ? `ID: ${participant.id || '—'}` : '';
+        }
+
+        function updateProgress(exactRemaining = remaining) {
+          const remainingRatio =
+            data.limitSeconds > 0 ? Math.max(0, Math.min(1, exactRemaining / data.limitSeconds)) : 0;
+          els.progressFill.style.height = `${remainingRatio * 100}%`;
+          els.progressFill.style.backgroundColor = `hsl(${Math.round(120 * remainingRatio)} 68% 40%)`;
+        }
+
+        function updatePresentation() {
+          const current = getParticipant(currentIndex);
+          els.timer.textContent = formatTime(remaining);
+          els.currentName.textContent =
+            current ? current.name || 'Без име'
+            : data.participants.length ? 'Готови за начало'
+            : 'Няма добавени участници';
+          els.currentId.textContent =
+            current ? `ID: ${current.id || '—'}`
+            : data.participants.length ? 'Натиснете интервал за първия участник'
+            : 'Върнете се в „Настройка“';
+          setNeighbor(els.nextName, els.nextId, getParticipant(currentIndex + 1));
+          const labels = {
+            waiting: 'Готовност',
+            ready: 'Готов за старт',
+            running: 'Времето тече',
+            finished: 'Приключи',
+            timeout: 'Времето изтече'
+          };
+          els.status.textContent = labels[timerState];
+          const isRunning = timerState === 'running';
+          els.presentationView.classList.toggle(
+            'warning',
+            isRunning && remaining <= 60 && remaining > 30
+          );
+          els.presentationView.classList.toggle('urgent', isRunning && remaining <= 30);
+          els.presentationView.classList.toggle('timed-out', timerState === 'timeout');
+          const exactRemaining =
+            isRunning && targetEnd ? Math.max(0, (targetEnd - Date.now()) / 1000) : remaining;
+          updateProgress(exactRemaining);
+        }
+
+        function flashManualStop() {
+          els.presentationView.classList.remove('flash-green');
+          void els.presentationView.offsetWidth;
+          els.presentationView.classList.add('flash-green');
+          setTimeout(() => els.presentationView.classList.remove('flash-green'), 1050);
+        }
+
+        function flashTimerStart() {
+          els.presentationView.classList.remove('flash-green', 'flash-start');
+          void els.presentationView.offsetWidth;
+          els.presentationView.classList.add('flash-start');
+          setTimeout(() => els.presentationView.classList.remove('flash-start'), 950);
+        }
+
+        function flashAtThreshold(value) {
+          if ((value === 60 || value === 30 || value === 0) && !flashedAt.has(value)) {
+            const isTimeout = value === 0;
+            flashedAt.add(value);
+            els.presentationView.classList.remove('flash', 'flash-long');
+            if (isTimeout) els.presentationView.classList.remove('flash-start');
+            void els.presentationView.offsetWidth;
+            els.presentationView.classList.add('flash');
+            if (isTimeout) els.presentationView.classList.add('flash-long');
+            setTimeout(
+              () => els.presentationView.classList.remove('flash', 'flash-long'),
+              isTimeout ? 2050 : 1050
+            );
+          }
+        }
+
+        function stopTicker() {
+          clearInterval(timerHandle);
+          cancelAnimationFrame(progressAnimationFrame);
+          timerHandle = null;
+          progressAnimationFrame = null;
+          targetEnd = null;
+        }
+
+        function animateProgress() {
+          if (timerState !== 'running' || !targetEnd) return;
+          updateProgress(Math.max(0, (targetEnd - Date.now()) / 1000));
+          progressAnimationFrame = requestAnimationFrame(animateProgress);
+        }
+
+        function clearPendingFinishedSpace() {
+          clearTimeout(pendingFinishedSpaceTimer);
+          pendingFinishedSpaceTimer = null;
+        }
+
+        function startTimer() {
+          if (!getParticipant(currentIndex)) return;
+          clearPendingFinishedSpace();
+          timerState = 'running';
+          flashedAt = new Set();
+          targetEnd = Date.now() + remaining * 1000;
+          updatePresentation();
+          flashTimerStart();
+          progressAnimationFrame = requestAnimationFrame(animateProgress);
+          timerHandle = setInterval(() => {
+            const old = remaining;
+            remaining = Math.max(0, (targetEnd - Date.now()) / 1000);
+            if (old > 60 && remaining <= 60) flashAtThreshold(60);
+            if (old > 30 && remaining <= 30) flashAtThreshold(30);
+            if (old > 0 && remaining <= 0) flashAtThreshold(0);
+            if (remaining <= 0) {
+              stopTicker();
+              timerState = 'timeout';
+            }
+            updatePresentation();
+          }, 200);
+        }
+
+        function finishCurrent() {
+          if (targetEnd) remaining = Math.max(0, (targetEnd - Date.now()) / 1000);
+          stopTicker();
+          timerState = 'finished';
+          flashManualStop();
+          updatePresentation();
+        }
+        function resetCurrent() {
+          clearPendingFinishedSpace();
+          stopTicker();
+          remaining = data.limitSeconds;
+          timerState = getParticipant(currentIndex) ? 'ready' : 'waiting';
+          flashedAt = new Set();
+          updatePresentation();
+        }
+
+        function advanceParticipant() {
+          clearPendingFinishedSpace();
+          if (currentIndex < data.participants.length - 1) {
+            currentIndex++;
+            remaining = data.limitSeconds;
+            timerState = 'ready';
+            flashedAt = new Set();
+            updatePresentation();
+          } else showToast('Това беше последният участник.');
+        }
+
+        function handleSpace() {
+          if (!data.participants.length) {
+            showToast('Първо добавете участници.');
+            return;
+          }
+          if (timerState === 'running') {
+            finishCurrent();
+            return;
+          }
+          if (timerState === 'finished' && remaining > 0) {
+            if (pendingFinishedSpaceTimer) {
+              clearPendingFinishedSpace();
+              startTimer();
+            } else {
+              pendingFinishedSpaceTimer = setTimeout(advanceParticipant, DOUBLE_SPACE_MS);
+            }
+            return;
+          }
+          if (timerState === 'ready') {
+            startTimer();
+            return;
+          }
+          advanceParticipant();
+        }
+
+        function handleLeft() {
+          clearPendingFinishedSpace();
+          if (timerState === 'running' || timerState === 'finished' || timerState === 'timeout') {
+            resetCurrent();
+            return;
+          }
+          if (timerState === 'ready' && currentIndex > 0) {
+            currentIndex--;
+            resetCurrent();
+          } else if (timerState === 'ready' && currentIndex === 0) {
+            currentIndex = -1;
+            resetCurrent();
+          }
+        }
+
+        function setMode(mode) {
+          const presenting = mode === 'presentation';
+          document.querySelector('.topbar').classList.toggle('hidden', presenting);
+          els.setupView.classList.toggle('hidden', presenting);
+          els.presentationView.classList.toggle('hidden', !presenting);
+          els.setupTab.classList.toggle('active', !presenting);
+          els.presentTab.classList.toggle('active', presenting);
+          els.presentTab.classList.toggle('danger', presenting);
+          document.querySelector('main').style.width = presenting ? '100%' : '';
+          document.querySelector('main').style.margin = presenting ? '0' : '';
+          if (!presenting) {
+            clearPendingFinishedSpace();
+            stopTicker();
+            if (timerState === 'running') timerState = 'ready';
+          }
+          updatePresentation();
+        }
+
+        els.minutes.addEventListener('input', updateLimit);
+        els.seconds.addEventListener('input', updateLimit);
+        els.addForm.addEventListener('submit', event => {
+          event.preventDefault();
+          const name = els.newName.value.trim(),
+            id = els.newId.value.trim();
+          if (!name || !id) return;
+          data.participants.push({ name, id });
+          saveData();
+          renderParticipants();
+          els.addForm.reset();
+          els.newName.focus();
+        });
+
+        els.list.addEventListener('input', event => {
+          const row = event.target.closest('.participant-row');
+          if (!row) return;
+          const index = Number(row.dataset.index);
+          if (event.target.classList.contains('name-input'))
+            data.participants[index].name = event.target.value;
+          if (event.target.classList.contains('id-input'))
+            data.participants[index].id = event.target.value;
+          saveData();
+          updatePresentation();
+        });
+
+        els.list.addEventListener('click', event => {
+          const row = event.target.closest('.participant-row');
+          if (!row) return;
+          const index = Number(row.dataset.index);
+          if (event.target.closest('.move-up')) moveParticipant(index, index - 1);
+          if (event.target.closest('.move-down')) moveParticipant(index, index + 1);
+          if (
+            event.target.closest('.delete') &&
+            confirm(`Да бъде ли изтрит участникът „${data.participants[index].name || 'Без име'}“?`)
+          ) {
+            data.participants.splice(index, 1);
+            saveData();
+            renderParticipants();
+          }
+        });
+
+        els.list.addEventListener('dragstart', event => {
+          const handle = event.target.closest('.drag-handle');
+          const row = event.target.closest('.participant-row');
+          if (!handle || !row) {
+            event.preventDefault();
+            return;
+          }
+          draggedIndex = Number(row.dataset.index);
+          event.dataTransfer.effectAllowed = 'move';
+          event.dataTransfer.setData('text/plain', String(draggedIndex));
+          const participant = data.participants[draggedIndex];
+          dragGhost = document.createElement('div');
+          dragGhost.className = 'drag-ghost';
+          const ghostName = document.createElement('strong');
+          ghostName.textContent = participant.name || 'Без име';
+          const ghostId = document.createElement('span');
+          ghostId.textContent = `ID: ${participant.id || '—'}`;
+          dragGhost.append(ghostName, ghostId);
+          document.body.appendChild(dragGhost);
+          event.dataTransfer.setDragImage(dragGhost, 28, 28);
+          els.list.querySelectorAll('.drop-preview-name').forEach(element => {
+            element.textContent = participant.name || 'Без име';
+          });
+          els.list.querySelectorAll('.drop-preview-id').forEach(element => {
+            element.textContent = `ID: ${participant.id || '—'}`;
+          });
+          requestAnimationFrame(() => {
+            row.classList.add('is-dragging');
+            els.list.classList.add('dragging-active');
+          });
+        });
+        els.list.addEventListener('dragover', event => {
+          const zone = event.target.closest('.drop-zone');
+          if (!zone || draggedIndex === null) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'move';
+          els.list.querySelectorAll('.drop-zone.active').forEach(element => {
+            if (element !== zone) element.classList.remove('active');
+          });
+          zone.classList.add('active');
+        });
+        els.list.addEventListener('dragleave', event => {
+          const zone = event.target.closest('.drop-zone');
+          if (zone && !zone.contains(event.relatedTarget)) zone.classList.remove('active');
+        });
+        els.list.addEventListener('drop', event => {
+          const zone = event.target.closest('.drop-zone');
+          if (!zone || draggedIndex === null) return;
+          event.preventDefault();
+          const from = draggedIndex;
+          const slot = Number(zone.dataset.dropIndex);
+          clearDragState();
+          moveParticipantToSlot(from, slot);
+        });
+        els.list.addEventListener('dragend', clearDragState);
+
+        els.csv.addEventListener('change', async () => {
+          const file = els.csv.files[0];
+          if (!file) return;
+          try {
+            const imported = parseCsv((await file.text()).replace(/^\uFEFF/, ''));
+            if (!imported.length) {
+              showToast('CSV файлът не съдържа участници.');
+              return;
+            }
+            if (
+              data.participants.length &&
+              !confirm(
+                `CSV импортът ще замени всички ${data.participants.length} текущи участници. Да продължи ли?`
+              )
+            )
+              return;
+            data.participants = imported;
+            currentIndex = -1;
+            resetCurrent();
+            saveData();
+            renderParticipants();
+            showToast(`Заредени участници: ${imported.length}`);
+          } catch {
+            showToast('CSV файлът не може да бъде прочетен.');
+          } finally {
+            els.csv.value = '';
+          }
+        });
+
+        els.shuffle.addEventListener('click', () => {
+          if (data.participants.length < 2) {
+            showToast('Добавете поне двама участници за разбъркване.');
+            return;
+          }
+          const originalOrder = [...data.participants];
+          for (let index = data.participants.length - 1; index > 0; index--) {
+            const randomIndex = Math.floor(Math.random() * (index + 1));
+            [data.participants[index], data.participants[randomIndex]] = [
+              data.participants[randomIndex],
+              data.participants[index]
+            ];
+          }
+          if (data.participants.every((participant, index) => participant === originalOrder[index])) {
+            [data.participants[0], data.participants[1]] = [data.participants[1], data.participants[0]];
+          }
+          currentIndex = -1;
+          resetCurrent();
+          saveData();
+          renderParticipants();
+          showToast('Редът на участниците е разбъркан.');
+        });
+
+        els.deleteAll.addEventListener('click', () => {
+          if (confirm('Сигурни ли сте, че искате да изтриете всички участници?')) {
+            data.participants = [];
+            currentIndex = -1;
+            resetCurrent();
+            saveData();
+            renderParticipants();
+          }
+        });
+
+        els.setupTab.addEventListener('click', () => setMode('setup'));
+        els.presentationSetup.addEventListener('click', () => setMode('setup'));
+        els.presentTab.addEventListener('click', () => {
+          resetCurrent();
+          currentIndex = -1;
+          timerState = 'waiting';
+          updatePresentation();
+          setMode('presentation');
+        });
+        els.fullscreen.addEventListener('click', async () => {
+          try {
+            if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+          } catch {
+            showToast('Цял екран не е достъпен.');
+          }
+        });
+        document.addEventListener('fullscreenchange', () => {
+          els.fullscreen.classList.toggle('hidden', Boolean(document.fullscreenElement));
+        });
+        document.addEventListener('keydown', event => {
+          if (els.presentationView.classList.contains('hidden')) return;
+          if (event.code === 'Space') {
+            event.preventDefault();
+            if (event.repeat) return;
+            handleSpace();
+          }
+          if (event.code === 'ArrowLeft') {
+            event.preventDefault();
+            handleLeft();
+          }
+        });
+
+        syncTimeInputs();
+        renderParticipants();
+        updatePresentation();
+      })();
+    </script>
+  </body>
+</html>
