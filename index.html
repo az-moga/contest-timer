@@ -1191,6 +1191,7 @@
             <input class="name-input" type="text" value="${escapeHtml(p.name)}" aria-label="Име на участник ${index + 1}">
             <input class="id-input" type="text" value="${escapeHtml(p.id)}" aria-label="ID на участник ${index + 1}">
             <div class="row-actions">
+              <button class="icon-button move-top" type="button" title="Премести най-отгоре" ${index === 0 ? 'disabled' : ''}>⇈</button>
               <button class="icon-button move-up" type="button" title="Премести нагоре" ${index === 0 ? 'disabled' : ''}>↑</button>
               <button class="icon-button move-down" type="button" title="Премести надолу" ${index === data.participants.length - 1 ? 'disabled' : ''}>↓</button>
               <button class="icon-button delete" type="button" title="Изтрий">×</button>
@@ -1561,6 +1562,7 @@
           const row = event.target.closest('.participant-row');
           if (!row) return;
           const index = Number(row.dataset.index);
+          if (event.target.closest('.move-top')) moveParticipant(index, 0);
           if (event.target.closest('.move-up')) moveParticipant(index, index - 1);
           if (event.target.closest('.move-down')) moveParticipant(index, index + 1);
           if (
