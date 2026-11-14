@@ -598,7 +598,8 @@
         background: white;
         border-color: white;
       }
-      .presentation.timed-out .neighbor.next .neighbor-label {
+      .presentation.timed-out .neighbor.next .neighbor-label,
+      .presentation.timed-out .neighbor.after-next .neighbor-label {
         color: white;
         background: rgba(255, 255, 255, 0.14);
         border-color: rgba(255, 255, 255, 0.45);
@@ -645,10 +646,11 @@
       }
       .current-name {
         margin: 0;
-        font-size: clamp(40px, 7vw, 100px);
-        line-height: 1;
+        font-size: clamp(28px, 4.2vw, 60px);
+        line-height: 1.02;
         letter-spacing: -0.045em;
         overflow-wrap: anywhere;
+        text-wrap: balance;
       }
       .current-id {
         margin-top: 14px;
@@ -661,7 +663,7 @@
         position: absolute;
         top: calc(50% + clamp(90px, 13vw, 170px));
         left: 50%;
-        width: 90vw;
+        width: min(76vw, 980px);
         transform: translateX(-50%);
         text-align: center;
       }
@@ -696,6 +698,10 @@
         display: none;
       }
       .neighbor.next {
+        left: 48px;
+        text-align: left;
+      }
+      .neighbor.after-next {
         right: 38px;
         text-align: right;
       }
@@ -709,7 +715,8 @@
         text-transform: uppercase;
         letter-spacing: 0.08em;
       }
-      .neighbor.next .neighbor-label {
+      .neighbor.next .neighbor-label,
+      .neighbor.after-next .neighbor-label {
         display: inline-block;
         padding: 6px 10px;
         color: var(--ink);
@@ -718,11 +725,14 @@
         border-radius: 12px;
         font-size: clamp(13px, 1.2vw, 18px);
       }
-      .neighbor.next .neighbor-name {
-        font-size: clamp(34px, 4.2vw, 68px);
+      .neighbor.next .neighbor-name,
+      .neighbor.after-next .neighbor-name {
+        font-size: clamp(25px, 3vw, 46px);
         margin-top: 4px;
+        text-wrap: balance;
       }
-      .neighbor.next .neighbor-id {
+      .neighbor.next .neighbor-id,
+      .neighbor.after-next .neighbor-id {
         font-size: clamp(23px, 2.5vw, 38px);
         margin-top: 7px;
       }
@@ -732,6 +742,7 @@
         line-height: 1.08;
         font-weight: 900;
         overflow-wrap: anywhere;
+        text-wrap: balance;
       }
       .neighbor-id {
         display: block;
@@ -762,8 +773,9 @@
       .progress-track {
         position: absolute;
         top: 24px;
-        bottom: 24px;
         left: 20px;
+        height: 64vh;
+        max-height: calc(100vh - 48px);
         width: clamp(14px, 1.4vw, 24px);
         z-index: 5;
         overflow: hidden;
@@ -853,10 +865,11 @@
           font-size: clamp(100px, 29vw, 190px);
         }
         .current-name {
-          font-size: clamp(35px, 10vw, 68px);
+          font-size: clamp(28px, 6vw, 48px);
         }
         .current-participant {
           top: calc(50% + clamp(92px, 14vw, 130px));
+          width: 88vw;
         }
         .neighbor {
           bottom: 24px;
@@ -866,6 +879,9 @@
           left: 16px;
         }
         .neighbor.next {
+          left: 28px;
+        }
+        .neighbor.after-next {
           right: 16px;
         }
         .presentation-toolbar {
@@ -874,8 +890,9 @@
         }
         .progress-track {
           top: 16px;
-          bottom: 16px;
           left: 10px;
+          height: 64vh;
+          max-height: calc(100vh - 32px);
         }
       }
 
@@ -928,10 +945,12 @@
         .neighbor-name {
           font-size: 21px;
         }
-        .neighbor.next .neighbor-name {
+        .neighbor.next .neighbor-name,
+        .neighbor.after-next .neighbor-name {
           font-size: clamp(26px, 7vw, 36px);
         }
-        .neighbor.next .neighbor-id {
+        .neighbor.next .neighbor-id,
+        .neighbor.after-next .neighbor-id {
           font-size: clamp(19px, 5vw, 25px);
         }
       }
@@ -1065,6 +1084,11 @@
           <span class="neighbor-id" id="nextId"></span>
           <span class="neighbor-name" id="nextName">—</span>
         </div>
+        <div class="neighbor after-next">
+          <span class="neighbor-label">По-следващ →</span>
+          <span class="neighbor-id" id="afterNextId"></span>
+          <span class="neighbor-name" id="afterNextName">—</span>
+        </div>
       </section>
     </main>
     <div class="toast" id="toast" role="status"></div>
@@ -1113,6 +1137,8 @@
           participantPosition: $('participantPosition'),
           nextName: $('nextName'),
           nextId: $('nextId'),
+          afterNextName: $('afterNextName'),
+          afterNextId: $('afterNextId'),
           presentationSetup: $('presentationSetupButton'),
           fullscreen: $('fullscreenButton'),
           toast: $('toast')
@@ -1353,6 +1379,7 @@
             : 'Върнете се в „Настройка“';
           els.participantPosition.textContent = `${current ? currentIndex + 1 : 0} / ${data.participants.length}`;
           setNeighbor(els.nextName, els.nextId, getParticipant(currentIndex + 1));
+          setNeighbor(els.afterNextName, els.afterNextId, getParticipant(currentIndex + 2));
           const labels = {
             waiting: 'Готовност',
             ready: 'Готов за старт',
